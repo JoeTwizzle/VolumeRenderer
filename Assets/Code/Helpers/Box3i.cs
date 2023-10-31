@@ -19,7 +19,7 @@ namespace Assets.Code
         /// <summary>
         /// An empty box with Min (0, 0, 0) and Max (0, 0, 0).
         /// </summary>
-        public static readonly Box3i Empty = new Box3i(0, 0, 0, 0, 0, 0);
+        public static readonly Box3i Empty = new(0, 0, 0, 0, 0, 0);
 
         private Vector3Int _min;
 
@@ -28,7 +28,7 @@ namespace Assets.Code
         /// </summary>
         public Vector3Int Min
         {
-            get => _min;
+            readonly get => _min;
             set
             {
                 _max = Vector3Int.Max(_max, value);
@@ -43,7 +43,7 @@ namespace Assets.Code
         /// </summary>
         public Vector3Int Max
         {
-            get => _max;
+            readonly get => _max;
             set
             {
                 _min = Vector3Int.Min(_min, value);
@@ -80,12 +80,12 @@ namespace Assets.Code
         /// Gets a vector describing the size of the Box3i structure.
         /// </summary>
         [XmlIgnore]
-        public Vector3Int Size
+        public readonly Vector3Int Size
         {
             get => Max - Min;
         }
 
-        public int Volume
+        public readonly int Volume
         {
             get
             {
@@ -94,7 +94,7 @@ namespace Assets.Code
             }
         }
 
-        public long LongVolume
+        public readonly long LongVolume
         {
             get
             {
@@ -109,7 +109,7 @@ namespace Assets.Code
         [XmlIgnore]
         public Vector3Int HalfSize
         {
-            get => Size / 2;
+            readonly get => Size / 2;
             set
             {
                 Vector3Int center = new Vector3Int((int)Center.x, (int)Center.y, (int)Center.z);
@@ -123,7 +123,7 @@ namespace Assets.Code
         /// </summary>
         /// to avoid annoying off-by-one errors in box placement, no setter is provided for this property
         [XmlIgnore]
-        public Vector3 Center
+        public readonly Vector3 Center
         {
             get => _min + ((Vector3)(_max - _min) * 0.5f);
         }
@@ -176,7 +176,7 @@ namespace Assets.Code
         /// </param>
         /// <returns>Whether this box contains the point.</returns>
 
-        public bool Contains(Vector3Int point, bool boundaryInclusive)
+        public readonly bool Contains(Vector3Int point, bool boundaryInclusive)
         {
             if (boundaryInclusive)
             {
@@ -193,7 +193,7 @@ namespace Assets.Code
         /// <param name="other">The box to query.</param>
         /// <returns>Whether this box overlaps the other box.</returns>
 
-        public bool Overlaps(Box3i other)
+        public readonly bool Overlaps(Box3i other)
         {
             return Min.x <= other.Min.x && Max.x >= other.Max.x &&
                Min.y <= other.Min.y && Max.y >= other.Max.y &&
@@ -205,7 +205,7 @@ namespace Assets.Code
         /// <param name="other">The box to query.</param>
         /// <returns>Whether this box contains the other box.</returns>
 
-        public bool Contains(Box3i other)
+        public readonly bool Contains(Box3i other)
         {
             return _max.x >= other._min.x && _min.x <= other._max.x &&
                    _max.y >= other._min.y && _min.y <= other._max.y &&

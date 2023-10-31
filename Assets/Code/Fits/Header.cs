@@ -52,10 +52,10 @@ namespace Assets.Code.Fits
             }
         }
 
-        public int[] AxisSizes => _cachedAxisSizes ?? (_cachedAxisSizes = Enumerable.Range(0, NumberOfAxisInMainContent).Select(delegate (int i)
+        public int[] AxisSizes => _cachedAxisSizes ??= Enumerable.Range(0, NumberOfAxisInMainContent).Select(delegate (int i)
         {
             return Convert.ToInt32(this[$"NAXIS{i + 1}"]);
-        }).ToArray());
+        }).ToArray();
 
         public IList<HeaderEntry> Entries => _entries;
 
