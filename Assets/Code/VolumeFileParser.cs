@@ -283,7 +283,7 @@ namespace Assets.Code
             }
         }
 
-        static unsafe void Copy3d(UnmanagedMemoryRange src, UnmanagedMemoryRange dest, Vector3Int minPos, Vector3Int maxPos, long idx, long xDims, long yDims)
+        public static unsafe void Copy3d(UnmanagedMemoryRange src, UnmanagedMemoryRange dest, Vector3Int minPos, Vector3Int maxPos, long idx, long xDims, long yDims)
         {
             long spanX = maxPos.x - minPos.x;
             long spanY = maxPos.y - minPos.y;

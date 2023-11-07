@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,6 +18,11 @@ namespace Assets.Code.VolumeData
             Dimensions = dimensions;
             MinValue = minValue;
             MaxValue = maxValue;
+        }
+
+        public MemoryMappedViewAccessor GetDataView(MemoryMappedFile file)
+        {
+            return file.CreateViewAccessor(VolumeFileParser.HeaderDataLength, Dimensions.LongVolume * sizeof(float));
         }
     }
 }
