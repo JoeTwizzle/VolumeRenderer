@@ -42,10 +42,10 @@ public class VolumeUIController : MonoBehaviour
         LoadVolumeSliceButton.onClick.AddListener(OnLoadVolumeSliceClicked);
 
         Debug.Assert(Toggles.Length == 3);
-        SelectedAxis = 0;
-        Toggles[0].SetIsOnWithoutNotify(true);
+        SelectedAxis = 2;
+        Toggles[0].SetIsOnWithoutNotify(false);
         Toggles[1].SetIsOnWithoutNotify(false);
-        Toggles[2].SetIsOnWithoutNotify(false);
+        Toggles[2].SetIsOnWithoutNotify(true);
         Toggles[0].onValueChanged.AddListener(Toggle0Changed);
         Toggles[1].onValueChanged.AddListener(Toggle1Changed);
         Toggles[2].onValueChanged.AddListener(Toggle2Changed);
@@ -152,6 +152,7 @@ public class VolumeUIController : MonoBehaviour
     private void OnApplicationQuit()
     {
         VolumeFile?.Dispose();
+        VolumeSliceImage?.material?.SetVector("_MinMaxVal", new Vector4(0, 1, 0, 0));
     }
 
     unsafe void OnLoadVolumeSliceClicked()
