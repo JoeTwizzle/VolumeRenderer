@@ -87,7 +87,7 @@ namespace Assets.Code
                     {
                         foreach (var mapEle in BoxCoordinateIndices.idxMap)
                         {
-                            if (mapEle.Value == idx)
+                            if (mapEle.Value == idx && mapEle.Key != null)
                             {
                                 b.idxMap[mapEle.Key] = int.Parse(((XElement)tdEntry).Value);
                                 idxToDo--;
@@ -104,10 +104,10 @@ namespace Assets.Code
 
             var sourceBoxes = sb.ToArray();
 
-            using var file = File.Create(cacheFile);
-            file.Write(voxels);
-            file.Write(sourceBoxes.Length);
-            file.Write(sourceBoxes.AsSpan().AsBytes());
+            //using var file = File.Create(cacheFile);
+            //file.Write(voxels);
+            //file.Write(sourceBoxes.Length);
+            //file.Write(sourceBoxes.AsSpan().AsBytes());
 
             return (voxels, sourceBoxes);
         }

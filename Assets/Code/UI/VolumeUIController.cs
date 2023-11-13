@@ -15,18 +15,16 @@ public class VolumeUIController : MonoBehaviour
     public Image VolumeSliceImage;
 
     public TMP_Text VolumeInfoText;
+    public TMP_Text VolumeSliceIndexText;
     public TMP_InputField VolumePathField;
     public TMP_InputField SourcesPathField;
 
-    public TMP_InputField[] CoordinateFields;
-
     public Button LoadVolumeInfoButton;
     public Button LoadSourcesInfoButton;
-    public Button LoadVolumeSliceButton;
 
     public ScrollRect ScrollRect;
 
-    public Toggle[] Toggles;
+    public Slider IndexSlider;
 
     public int SelectedAxis;
 
@@ -35,57 +33,16 @@ public class VolumeUIController : MonoBehaviour
 
     private void OnEnable()
     {
-        LoadVolumeSliceButton.interactable = false;
-
         LoadVolumeInfoButton.onClick.AddListener(OnLoadVolumeClicked);
         LoadSourcesInfoButton.onClick.AddListener(OnLoadSourcesClicked);
-        LoadVolumeSliceButton.onClick.AddListener(OnLoadVolumeSliceClicked);
-
-        Debug.Assert(Toggles.Length == 3);
+        IndexSlider.onValueChanged.AddListener(OnLoadVolumeSliceChanged);
+        
         SelectedAxis = 2;
-        Toggles[0].SetIsOnWithoutNotify(false);
-        Toggles[1].SetIsOnWithoutNotify(false);
-        Toggles[2].SetIsOnWithoutNotify(true);
-        Toggles[0].onValueChanged.AddListener(Toggle0Changed);
-        Toggles[1].onValueChanged.AddListener(Toggle1Changed);
-        Toggles[2].onValueChanged.AddListener(Toggle2Changed);
-
-        Debug.Assert(CoordinateFields.Length == 3);
-
-    }
-
-    void Toggle0Changed(bool value)
-    {
-        ToggleChanged(0);
-    }
-
-    void Toggle1Changed(bool value)
-    {
-        ToggleChanged(1);
-    }
-
-    void Toggle2Changed(bool value)
-    {
-        ToggleChanged(2);
-    }
-
-    void ToggleChanged(int switched)
-    {
-        Debug.Assert(switched < 3 && switched >= 0);
-        Debug.Log($"Toggled {switched}");
-        for (int i = 0; i < 3; i++)
-        {
-            Toggles[i].SetIsOnWithoutNotify(false);
-        }
-        Toggles[switched].SetIsOnWithoutNotify(true);
-        SelectedAxis = switched;
     }
 
     void OnLoadVolumeClicked()
     {
         string path = VolumePathField.text;
-        bool exists = File.Exists(path);
-
         if (File.Exists(path))
         {
             try
@@ -99,6 +56,10 @@ public class VolumeUIController : MonoBehaviour
                 }
 
                 GlobalVolumeInfo = info;
+                IndexSlider.maxValue = info.Dimensions.Max.z-1;
+                IndexSlider.minValue = info.Dimensions.Min.z;
+                IndexSlider.SetValueWithoutNotify(info.MinValue);
+
                 UpdateInfoText(info);
             }
             catch (Exception e)
@@ -106,8 +67,6 @@ public class VolumeUIController : MonoBehaviour
                 Debug.LogError("Path exist, but is not a valid Source Volume file." + e.ToString());
             }
         }
-
-        LoadVolumeSliceButton.interactable = exists;
     }
 
     void UpdateInfoText(GlobalVolumeInfo info)
@@ -140,12 +99,7 @@ public class VolumeUIController : MonoBehaviour
     {
         LoadVolumeInfoButton.onClick.RemoveListener(OnLoadVolumeClicked);
         LoadSourcesInfoButton.onClick.RemoveListener(OnLoadSourcesClicked);
-        LoadVolumeSliceButton.onClick.RemoveListener(OnLoadVolumeSliceClicked);
-
-        Toggles[0].onValueChanged.RemoveListener(Toggle0Changed);
-        Toggles[1].onValueChanged.RemoveListener(Toggle1Changed);
-        Toggles[2].onValueChanged.RemoveListener(Toggle2Changed);
-
+        IndexSlider.onValueChanged.RemoveListener(OnLoadVolumeSliceChanged);
         VolumeFile?.Dispose();
     }
 
@@ -155,14 +109,16 @@ public class VolumeUIController : MonoBehaviour
         VolumeSliceImage?.material?.SetVector("_MinMaxVal", new Vector4(0, 1, 0, 0));
     }
 
-    unsafe void OnLoadVolumeSliceClicked()
+    unsafe void OnLoadVolumeSliceChanged(float v)
     {
+        Debug.Log("Called");
         if (GlobalVolumeInfo.HasValue)
         {
-            int x = int.Parse(CoordinateFields[0].text);
-            int y = int.Parse(CoordinateFields[1].text);
-            int z = int.Parse(CoordinateFields[2].text);
-
+            Debug.Log("Changed");
+            int x = 0;
+            int y = 0;
+            int z = (int)v;
+            VolumeSliceIndexText.text = z.ToString();
             Vector3Int pos = new Vector3Int(x, y, z);
 
             var info = GlobalVolumeInfo.Value;
@@ -210,7 +166,6 @@ public class VolumeUIController : MonoBehaviour
             VolumeSliceImage.material.SetVector("_MinMaxVal", new Vector4(info.MinValue, info.MaxValue, 0, 0));
             VolumeSliceImage.sprite = Sprite.Create(image, new Rect(0.0f, 0.0f, image.width, image.height), Vector2.zero);
             Debug.Log("Applied texture");
-            Debug.Log(imageData.Length);
         }
     }
 }

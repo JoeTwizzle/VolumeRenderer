@@ -136,15 +136,10 @@ Shader "UI/Volume"
                 clip (color.a - 0.001);
                 #endif
 
-        
-
-                float voxelValue = saturate(color.r); //clamp 0 - 1
-
-                color.r = remap(_MinMaxVal.x, _MinMaxVal.y, 0.0, 1.0, voxelValue);
-
-                color.rgb = spectral_jet(color.r);
-                color.rgb = lerp(float3(0,0,0), color.rgb, voxelValue / _MinMaxVal.y);
-
+                  
+                float voxelVal = color.r;      
+                color.rgb = spectral_jet(remap(_MinMaxVal.x, _MinMaxVal.y, 0.0, 1.0, voxelVal)); //remap to 0 - 1
+                color.rgb = lerp(float3(0,0,0), color.rgb, voxelVal / _MinMaxVal.y);
                 return color;
             }
         ENDCG
