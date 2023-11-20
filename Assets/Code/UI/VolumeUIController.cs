@@ -9,6 +9,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 public class VolumeUIController : MonoBehaviour
 {
@@ -16,6 +17,7 @@ public class VolumeUIController : MonoBehaviour
 
     public TMP_Text VolumeInfoText;
     public TMP_Text VolumeSliceIndexText;
+    public TMP_Text SourceRegionsText;
     public TMP_InputField VolumePathField;
     public TMP_InputField SourcesPathField;
 
@@ -36,7 +38,7 @@ public class VolumeUIController : MonoBehaviour
         LoadVolumeInfoButton.onClick.AddListener(OnLoadVolumeClicked);
         LoadSourcesInfoButton.onClick.AddListener(OnLoadSourcesClicked);
         IndexSlider.onValueChanged.AddListener(OnLoadVolumeSliceChanged);
-        
+
         SelectedAxis = 2;
     }
 
@@ -56,7 +58,7 @@ public class VolumeUIController : MonoBehaviour
                 }
 
                 GlobalVolumeInfo = info;
-                IndexSlider.maxValue = info.Dimensions.Max.z-1;
+                IndexSlider.maxValue = info.Dimensions.Max.z - 1;
                 IndexSlider.minValue = info.Dimensions.Min.z;
                 IndexSlider.SetValueWithoutNotify(info.MinValue);
 
@@ -86,13 +88,28 @@ public class VolumeUIController : MonoBehaviour
         {
             try
             {
-                VolumeFileParser.ExtractSourceRegionsFromXML(path);
+                var sourceData = VolumeFileParser.ExtractSourceRegionsFromXML(path);
+
+                ShowSourceDataUIInfo(sourceData.Item1, sourceData.Item2);
+
             }
             catch (Exception e)
             {
                 Debug.LogError("Path exist, but is not a valid Source Regions file." + e.ToString());
             }
         }
+    }
+
+    void ShowSourceDataUIInfo(long volume, SourceRegion[] regions)
+    {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.AppendLine($"Total volume: {volume}");
+        stringBuilder.AppendLine($"Total source regions: {regions.Length}");
+        for (int i = 0; i < regions.Length; i++)
+        {
+            stringBuilder.AppendLine($"Source Region {i + 1}:{Environment.NewLine}{{{regions[i].SourceDimensions.ToString()}}}");
+        }
+        SourceRegionsText.text = stringBuilder.ToString();
     }
 
     private void OnDisable()

@@ -78,7 +78,7 @@ namespace Assets.Code
             var sb = new List<SourceRegion>();
             for (; dataEntry != null; dataEntry = dataEntry.NextNode)
             {
-                SourceBox b = new();
+                SourceBox b = SourceBox.Create();
                 int idx = 0;
                 var idxToDo = BoxCoordinateIndices.idxMap.Count;
                 if (dataEntry is XElement de)

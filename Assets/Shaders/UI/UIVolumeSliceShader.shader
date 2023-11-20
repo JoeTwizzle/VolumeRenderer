@@ -84,6 +84,7 @@ Shader "UI/Volume"
             fixed4 _TextureSampleAdd;
             float4 _ClipRect;
             float4 _MainTex_ST;
+            //StructuredBuffer<float2> _SourceRegions;
 
             float invLerp(float from, float to, float value) {
                 return (value - from) / (to - from);
@@ -136,6 +137,10 @@ Shader "UI/Volume"
                 clip (color.a - 0.001);
                 #endif
 
+                //for(int i=0; i<_SourceRegions.length();i++)
+                //{
+                    
+                //}
                   
                 float voxelVal = color.r;      
                 color.rgb = spectral_jet(remap(_MinMaxVal.x, _MinMaxVal.y, 0.0, 1.0, voxelVal)); //remap to 0 - 1

@@ -365,5 +365,10 @@ namespace Assets.Code
         {
             return HashCode.Combine(_min, _max);
         }
+
+        public override string ToString()
+        {
+            return $"Min:{Min} | Max:{Max}";
+        }
     }
 }
