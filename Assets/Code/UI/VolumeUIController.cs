@@ -10,6 +10,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Unity.Collections;
+using Unity.VisualScripting;
 
 public class VolumeUIController : MonoBehaviour
 {
@@ -28,18 +30,45 @@ public class VolumeUIController : MonoBehaviour
 
     public Slider IndexSlider;
 
+    public Toggle Toggle;
+
     public int SelectedAxis;
 
-    GlobalVolumeInfo? GlobalVolumeInfo;
-    MemoryMappedFile? VolumeFile;
+    SourceRegion[]? sourceRegions;
+    ComputeBuffer sourceRegionsBuffer;
+    ComputeBuffer visibleSourceRegionsBuffer;
+
+
+    GlobalVolumeInfo? globalVolumeInfo;
+    MemoryMappedFile? volumeFile;
+
+    List<int> visibleRegions;
 
     private void OnEnable()
     {
+        visibleRegions = new List<int>();
         LoadVolumeInfoButton.onClick.AddListener(OnLoadVolumeClicked);
         LoadSourcesInfoButton.onClick.AddListener(OnLoadSourcesClicked);
         IndexSlider.onValueChanged.AddListener(OnLoadVolumeSliceChanged);
-
+        Toggle.onValueChanged.AddListener(ToggleChanged);
         SelectedAxis = 2;
+        SetShaderDefaults();
+    }
+
+    void ToggleChanged(bool value)
+    {
+        VolumeSliceImage.material.SetFloat("_FilterSourceRegions", value ? 1f : 0f);
+    }
+
+    void SetShaderDefaults()
+    {
+        sourceRegionsBuffer = new ComputeBuffer(1, sizeof(int) * 4, ComputeBufferType.Structured);
+        sourceRegionsBuffer.SetData(new Vector4Int[] { new Vector4Int(0, 0, 0, 0) });
+        visibleSourceRegionsBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Structured);
+        visibleSourceRegionsBuffer.SetData(new int[] { 0 });
+
+        VolumeSliceImage.material.SetBuffer("sourceRegionsBuffer", sourceRegionsBuffer);
+        VolumeSliceImage.material.SetBuffer("visibleSourceRegionsBuffer", visibleSourceRegionsBuffer);
     }
 
     void OnLoadVolumeClicked()
@@ -49,15 +78,16 @@ public class VolumeUIController : MonoBehaviour
         {
             try
             {
-                VolumeFile?.Dispose();
+                volumeFile?.Dispose();
+
                 (var file, var info) = VolumeFileParser.LoadSourceVolume(path);
-                VolumeFile = file;
+                volumeFile = file;
                 if (info.MinValue > info.MaxValue)
                 {
                     info = new GlobalVolumeInfo(info.Dimensions, info.MaxValue, info.MinValue);
                 }
 
-                GlobalVolumeInfo = info;
+                globalVolumeInfo = info;
                 IndexSlider.maxValue = info.Dimensions.Max.z - 1;
                 IndexSlider.minValue = info.Dimensions.Min.z;
                 IndexSlider.SetValueWithoutNotify(info.MinValue);
@@ -86,28 +116,36 @@ public class VolumeUIController : MonoBehaviour
 
         if (File.Exists(path))
         {
-            try
-            {
-                var sourceData = VolumeFileParser.ExtractSourceRegionsFromXML(path);
 
-                ShowSourceDataUIInfo(sourceData.Item1, sourceData.Item2);
-
-            }
-            catch (Exception e)
+            var sourceData = VolumeFileParser.ExtractSourceRegionsFromXML(path);
+            sourceRegions = sourceData.Item2;
+            if (sourceRegionsBuffer.count != sourceData.Item2.Length)
             {
-                Debug.LogError("Path exist, but is not a valid Source Regions file." + e.ToString());
+                sourceRegionsBuffer.Dispose();
+                sourceRegionsBuffer = new ComputeBuffer(sourceRegions.Length, sizeof(int) * 4, ComputeBufferType.Structured);
+                Vector4Int[] data = new Vector4Int[sourceRegions.Length];
+                for (int i = 0; i < sourceRegions.Length; i++)
+                {
+                    var min = sourceRegions[i].SourceDimensions.Min;
+                    var max = sourceRegions[i].SourceDimensions.Max;
+                    data[i] = new Vector4Int(min.x, min.y, max.x, max.y);
+                }
+                sourceRegionsBuffer.SetData(data);
+                VolumeSliceImage.material.SetBuffer("sourceRegionsBuffer", sourceRegionsBuffer);
             }
+
+            ShowSourceDataUIInfo(sourceData.Item1, sourceData.Item2);
         }
     }
 
     void ShowSourceDataUIInfo(long volume, SourceRegion[] regions)
     {
-        StringBuilder stringBuilder = new StringBuilder();
+        StringBuilder stringBuilder = new();
         stringBuilder.AppendLine($"Total volume: {volume}");
         stringBuilder.AppendLine($"Total source regions: {regions.Length}");
         for (int i = 0; i < regions.Length; i++)
         {
-            stringBuilder.AppendLine($"Source Region {i + 1}:{Environment.NewLine}{{{regions[i].SourceDimensions.ToString()}}}");
+            stringBuilder.AppendLine($"Source Region {i + 1}:{Environment.NewLine}{{{regions[i].SourceDimensions}}}");
         }
         SourceRegionsText.text = stringBuilder.ToString();
     }
@@ -117,28 +155,27 @@ public class VolumeUIController : MonoBehaviour
         LoadVolumeInfoButton.onClick.RemoveListener(OnLoadVolumeClicked);
         LoadSourcesInfoButton.onClick.RemoveListener(OnLoadSourcesClicked);
         IndexSlider.onValueChanged.RemoveListener(OnLoadVolumeSliceChanged);
-        VolumeFile?.Dispose();
+        Toggle.onValueChanged.RemoveListener(ToggleChanged);
+        volumeFile?.Dispose();
     }
 
     private void OnApplicationQuit()
     {
-        VolumeFile?.Dispose();
+        volumeFile?.Dispose();
         VolumeSliceImage?.material?.SetVector("_MinMaxVal", new Vector4(0, 1, 0, 0));
     }
 
     unsafe void OnLoadVolumeSliceChanged(float v)
     {
-        Debug.Log("Called");
-        if (GlobalVolumeInfo.HasValue)
+        if (globalVolumeInfo.HasValue)
         {
-            Debug.Log("Changed");
             int x = 0;
             int y = 0;
             int z = (int)v;
             VolumeSliceIndexText.text = z.ToString();
             Vector3Int pos = new Vector3Int(x, y, z);
 
-            var info = GlobalVolumeInfo.Value;
+            var info = globalVolumeInfo.Value;
 
             bool isValidPos = info.Dimensions.Contains(pos);
             if (!isValidPos)
@@ -166,7 +203,7 @@ public class VolumeUIController : MonoBehaviour
             Vector3Int max = info.Dimensions.Max;
             max[SelectedAxis] = pos[SelectedAxis] + 1;
 
-            var srcView = info.GetDataView(VolumeFile);
+            var srcView = info.GetDataView(volumeFile);
             byte* srcData = null;
             srcView.SafeMemoryMappedViewHandle.AcquirePointer(ref srcData);
             srcData += srcView.PointerOffset;
@@ -182,7 +219,27 @@ public class VolumeUIController : MonoBehaviour
             image.Apply();
             VolumeSliceImage.material.SetVector("_MinMaxVal", new Vector4(info.MinValue, info.MaxValue, 0, 0));
             VolumeSliceImage.sprite = Sprite.Create(image, new Rect(0.0f, 0.0f, image.width, image.height), Vector2.zero);
-            Debug.Log("Applied texture");
+
+            if (sourceRegions != null)
+            {
+                visibleRegions.Clear();
+                for (int i = 0; i < sourceRegions.Length; i++)
+                {
+                    if (sourceRegions[i].SourceDimensions.Min.z <= z && sourceRegions[i].SourceDimensions.Max.z > z)
+                    {
+                        visibleRegions.Add(i);
+                        Debug.Log(i);
+                    }
+                }
+                if (visibleSourceRegionsBuffer.count != visibleRegions.Count)
+                {
+                    visibleSourceRegionsBuffer.Dispose();
+                    visibleSourceRegionsBuffer = new ComputeBuffer(visibleRegions.Count > 0 ? visibleRegions.Count : 1, sizeof(int), ComputeBufferType.Structured);
+                }
+                visibleSourceRegionsBuffer.SetData(visibleRegions);
+                VolumeSliceImage.material.SetInteger("_VisibleRegionsCount", visibleRegions.Count);
+                VolumeSliceImage.material.SetBuffer("visibleSourceRegionsBuffer", visibleSourceRegionsBuffer);
+            }
         }
     }
 }

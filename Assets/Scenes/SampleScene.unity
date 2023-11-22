@@ -524,7 +524,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -175.89859, y: -0.0006560467}
+  m_AnchoredPosition: {x: -175.89876, y: -0.0006560467}
   m_SizeDelta: {x: 110.3041, y: 0}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &181046784
@@ -1455,7 +1455,7 @@ MonoBehaviour:
   onValueChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_IsOn: 1
+  m_IsOn: 0
 --- !u!1 &517086069
 GameObject:
   m_ObjectHideFlags: 0
@@ -2301,7 +2301,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1346739200}
   m_Direction: 0
   m_Value: 0
-  m_Size: 1
+  m_Size: 0.9984002
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -5587,6 +5587,7 @@ MonoBehaviour:
   LoadSourcesInfoButton: {fileID: 378320721}
   ScrollRect: {fileID: 631733047}
   IndexSlider: {fileID: 1794991117}
+  Toggle: {fileID: 420552587}
   SelectedAxis: 0
 --- !u!4 &2090391045
 Transform:

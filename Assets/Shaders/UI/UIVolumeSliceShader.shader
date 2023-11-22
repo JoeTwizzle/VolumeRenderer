@@ -5,6 +5,7 @@ Shader "UI/Volume"
     Properties
     {
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
+
         _Color ("Tint", Color) = (1,1,1,1)
 
         _StencilComp ("Stencil Comparison", Float) = 8
@@ -13,6 +14,11 @@ Shader "UI/Volume"
         _StencilWriteMask ("Stencil Write Mask", Float) = 255
         _StencilReadMask ("Stencil Read Mask", Float) = 255
         _MinMaxVal ("Min Max Value", Vector) = (0, 1, 0, 0)
+        _VisibleRegionsCount ("Visible Source Regions", Integer) = 0
+
+
+
+        [MaterialToggle] _FilterSourceRegions ("Filter Source Regions", Float) = 0
 
         _ColorMask ("Color Mask", Float) = 15
 
@@ -60,8 +66,6 @@ Shader "UI/Volume"
             #pragma multi_compile_local _ UNITY_UI_CLIP_RECT
             #pragma multi_compile_local _ UNITY_UI_ALPHACLIP
 
-            float2 _MinMaxVal;
-
             struct appdata_t
             {
                 float4 vertex   : POSITION;
@@ -84,7 +88,12 @@ Shader "UI/Volume"
             fixed4 _TextureSampleAdd;
             float4 _ClipRect;
             float4 _MainTex_ST;
-            //StructuredBuffer<float2> _SourceRegions;
+            float4 _MainTex_TexelSize;
+            float2 _MinMaxVal;
+            float _FilterSourceRegions;
+            int _VisibleRegionsCount;
+            uniform StructuredBuffer<int4> sourceRegionsBuffer : register(t1);
+            uniform StructuredBuffer<int> visibleSourceRegionsBuffer : register(t2);
 
             float invLerp(float from, float to, float value) {
                 return (value - from) / (to - from);
@@ -118,7 +127,7 @@ Shader "UI/Volume"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(OUT);
                 OUT.worldPosition = v.vertex;
                 OUT.vertex = UnityObjectToClipPos(OUT.worldPosition);
-
+        
                 OUT.texcoord = TRANSFORM_TEX(v.texcoord, _MainTex);
 
                 OUT.color = v.color * _Color;
@@ -136,15 +145,28 @@ Shader "UI/Volume"
                 #ifdef UNITY_UI_ALPHACLIP
                 clip (color.a - 0.001);
                 #endif
-
-                //for(int i=0; i<_SourceRegions.length();i++)
-                //{
-                    
-                //}
-                  
+                
                 float voxelVal = color.r;      
                 color.rgb = spectral_jet(remap(_MinMaxVal.x, _MinMaxVal.y, 0.0, 1.0, voxelVal)); //remap to 0 - 1
                 color.rgb = lerp(float3(0,0,0), color.rgb, voxelVal / _MinMaxVal.y);
+                int2 pos = int2(IN.texcoord * _MainTex_TexelSize.zw);
+
+                if(_FilterSourceRegions != 0)
+                {
+                    bool anyFound = false;
+                    for (int i = 0; i < _VisibleRegionsCount; i++)
+                    {
+                        int4 bounds = sourceRegionsBuffer[visibleSourceRegionsBuffer[i]];
+                        if(!(pos.x < bounds.x || pos.y < bounds.y || pos.x >= bounds.z || pos.y >= bounds.w))
+                        {
+                            anyFound = true;
+                        }
+                    }
+                    if(!anyFound)
+                    {
+                        color = float4(0, 0, 0, 1);
+                    }
+                }
                 return color;
             }
         ENDCG
