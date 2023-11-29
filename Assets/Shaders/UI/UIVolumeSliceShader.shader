@@ -83,13 +83,14 @@ Shader "UI/Volume"
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
-            sampler2D _MainTex;
+            Texture2D  _MainTex;
+            SamplerState my_point_clamp_sampler;
             fixed4 _Color;
             fixed4 _TextureSampleAdd;
             float4 _ClipRect;
             float4 _MainTex_ST;
             float4 _MainTex_TexelSize;
-            float2 _MinMaxVal;
+            float4 _MinMaxVal;
             float _FilterSourceRegions;
             int _VisibleRegionsCount;
             uniform StructuredBuffer<int4> sourceRegionsBuffer : register(t1);
@@ -134,10 +135,15 @@ Shader "UI/Volume"
                 return OUT;
             }
 
-            fixed4 frag(v2f IN) : SV_Target
+            float4 frag(v2f IN) : SV_Target
             {
-                half4 color = (tex2D(_MainTex, IN.texcoord) + _TextureSampleAdd) * IN.color;
-
+                
+                float voxelVal = _MainTex.Sample(my_point_clamp_sampler, IN.texcoord).r;
+                float scaledVal = remap(_MinMaxVal.x, _MinMaxVal.y, 0.0, 1.0, voxelVal);
+                float stretchedVal = remap(_MinMaxVal.z, _MinMaxVal.w, 0.0, 1.0, scaledVal);
+                
+                
+                float4 color = float4(0, 0, 0, 1);
                 #ifdef UNITY_UI_CLIP_RECT
                 color.a *= UnityGet2DClipping(IN.worldPosition.xy, _ClipRect);
                 #endif
@@ -145,12 +151,12 @@ Shader "UI/Volume"
                 #ifdef UNITY_UI_ALPHACLIP
                 clip (color.a - 0.001);
                 #endif
-                
-                float voxelVal = color.r;      
-                color.rgb = spectral_jet(remap(_MinMaxVal.x, _MinMaxVal.y, 0.0, 1.0, voxelVal)); //remap to 0 - 1
-                color.rgb = lerp(float3(0,0,0), color.rgb, voxelVal / _MinMaxVal.y);
-                int2 pos = int2(IN.texcoord * _MainTex_TexelSize.zw);
+                color.rgb = spectral_jet(stretchedVal); //remap to 0 - 1
+                color.rgb = lerp(float3(0,0,0), color.rgb, stretchedVal);
+                //color.rgb = saturate(color.rgb);
+                //color.rgb = saturate(float3(voxelVal / _MinMaxVal.y, voxelVal / _MinMaxVal.y, voxelVal / _MinMaxVal.y));
 
+                int2 pos = int2(IN.texcoord * _MainTex_TexelSize.zw);
                 if(_FilterSourceRegions != 0)
                 {
                     bool anyFound = false;

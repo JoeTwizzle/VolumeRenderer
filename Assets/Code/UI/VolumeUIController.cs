@@ -10,8 +10,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Unity.Collections;
-using Unity.VisualScripting;
+using UnityEngine.UI.Extensions;
 
 public class VolumeUIController : MonoBehaviour
 {
@@ -34,10 +33,13 @@ public class VolumeUIController : MonoBehaviour
 
     public int SelectedAxis;
 
+    public MinMaxSlider Slider;
+
     SourceRegion[]? sourceRegions;
     ComputeBuffer sourceRegionsBuffer;
     ComputeBuffer visibleSourceRegionsBuffer;
 
+    Vector2 valueRange = new Vector2(0, 1);
 
     GlobalVolumeInfo? globalVolumeInfo;
     MemoryMappedFile? volumeFile;
@@ -51,8 +53,18 @@ public class VolumeUIController : MonoBehaviour
         LoadSourcesInfoButton.onClick.AddListener(OnLoadSourcesClicked);
         IndexSlider.onValueChanged.AddListener(OnLoadVolumeSliceChanged);
         Toggle.onValueChanged.AddListener(ToggleChanged);
+        Slider.onValueChanged.AddListener(SliderChanged);
         SelectedAxis = 2;
+        ToggleChanged(Toggle.isOn);
         SetShaderDefaults();
+    }
+
+    void SliderChanged(float min, float max)
+    {
+        valueRange = new Vector2(min / 100f, max / 100f);
+
+        var info = globalVolumeInfo.Value;
+        VolumeSliceImage.material.SetVector("_MinMaxVal", new Vector4(info.MinValue, info.MaxValue, valueRange.x, valueRange.y));
     }
 
     void ToggleChanged(bool value)
@@ -93,6 +105,7 @@ public class VolumeUIController : MonoBehaviour
                 IndexSlider.SetValueWithoutNotify(info.MinValue);
 
                 UpdateInfoText(info);
+                OnLoadVolumeSliceChanged(0);
             }
             catch (Exception e)
             {
@@ -156,6 +169,7 @@ public class VolumeUIController : MonoBehaviour
         LoadSourcesInfoButton.onClick.RemoveListener(OnLoadSourcesClicked);
         IndexSlider.onValueChanged.RemoveListener(OnLoadVolumeSliceChanged);
         Toggle.onValueChanged.RemoveListener(ToggleChanged);
+        Slider.onValueChanged.RemoveListener(SliderChanged);
         volumeFile?.Dispose();
     }
 
@@ -163,6 +177,7 @@ public class VolumeUIController : MonoBehaviour
     {
         volumeFile?.Dispose();
         VolumeSliceImage?.material?.SetVector("_MinMaxVal", new Vector4(0, 1, 0, 0));
+        ToggleChanged(false);
     }
 
     unsafe void OnLoadVolumeSliceChanged(float v)
@@ -217,7 +232,7 @@ public class VolumeUIController : MonoBehaviour
             srcView.SafeMemoryMappedViewHandle.ReleasePointer();
             image.LoadRawTextureData(imageData);
             image.Apply();
-            VolumeSliceImage.material.SetVector("_MinMaxVal", new Vector4(info.MinValue, info.MaxValue, 0, 0));
+            VolumeSliceImage.material.SetVector("_MinMaxVal", new Vector4(info.MinValue, info.MaxValue, valueRange.x, valueRange.y));
             VolumeSliceImage.sprite = Sprite.Create(image, new Rect(0.0f, 0.0f, image.width, image.height), Vector2.zero);
 
             if (sourceRegions != null)
