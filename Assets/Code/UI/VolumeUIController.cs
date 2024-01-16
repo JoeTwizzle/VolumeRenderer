@@ -11,6 +11,8 @@ using UnityEngine.UI;
 using System.Runtime.CompilerServices;
 using System.Text;
 using UnityEngine.UI.Extensions;
+using MixedReality.Toolkit.UX;
+using SimpleFileBrowser;
 
 public class VolumeUIController : MonoBehaviour
 {
@@ -24,12 +26,19 @@ public class VolumeUIController : MonoBehaviour
 
     public Button LoadVolumeInfoButton;
     public Button LoadSourcesInfoButton;
+    public PressableButton XR_LoadVolumeButton;
+    public PressableButton XR_LoadSourcesButton;
+    public PressableButton XR_SelectVolumePathButton;
+    public PressableButton XR_SelectSourcesPathButton;
+    public PressableButton XR_SourcesOnlyToggle;
+
 
     public ScrollRect ScrollRect;
 
-    public Slider IndexSlider;
+    public UnityEngine.UI.Slider IndexSlider;
+    public MixedReality.Toolkit.UX.Slider XR_IndexSlider;
 
-    public Toggle Toggle;
+    public Toggle SourcesOnlyToggle;
 
     public int SelectedAxis;
 
@@ -49,17 +58,76 @@ public class VolumeUIController : MonoBehaviour
     private void OnEnable()
     {
         visibleRegions = new List<int>();
+        XR_SourcesOnlyToggle.OnClicked.AddListener(XR_SourcesOnlyToggleClicked);
+        XR_LoadVolumeButton.OnClicked.AddListener(OnLoadVolumeClicked);
+        XR_LoadSourcesButton.OnClicked.AddListener(OnLoadSourcesClicked);
         LoadVolumeInfoButton.onClick.AddListener(OnLoadVolumeClicked);
         LoadSourcesInfoButton.onClick.AddListener(OnLoadSourcesClicked);
         IndexSlider.onValueChanged.AddListener(OnLoadVolumeSliceChanged);
-        Toggle.onValueChanged.AddListener(ToggleChanged);
-        Slider.onValueChanged.AddListener(SliderChanged);
+        SourcesOnlyToggle?.onValueChanged.AddListener(ToggleChanged);
+        Slider.onValueChanged.AddListener(MinMaxSliderChanged);
+        XR_IndexSlider.OnValueUpdated.AddListener(XR_SliderChanged);
+        XR_SelectVolumePathButton.OnClicked.AddListener(XR_VolumePathClicked);
+        XR_SelectSourcesPathButton.OnClicked.AddListener(XR_SourcePathClicked);
         SelectedAxis = 2;
-        ToggleChanged(Toggle.isOn);
+        ToggleChanged(SourcesOnlyToggle?.isOn ?? false);
         SetShaderDefaults();
     }
 
-    void SliderChanged(float min, float max)
+    private void OnDisable()
+    {
+        LoadVolumeInfoButton.onClick.RemoveListener(OnLoadVolumeClicked);
+        LoadSourcesInfoButton.onClick.RemoveListener(OnLoadSourcesClicked);
+        XR_SourcesOnlyToggle.OnClicked.RemoveListener(XR_SourcesOnlyToggleClicked);
+        XR_LoadVolumeButton.OnClicked.RemoveListener(OnLoadVolumeClicked);
+        XR_LoadSourcesButton.OnClicked.RemoveListener(OnLoadSourcesClicked);
+        IndexSlider.onValueChanged.RemoveListener(OnLoadVolumeSliceChanged);
+        SourcesOnlyToggle?.onValueChanged.RemoveListener(ToggleChanged);
+        Slider.onValueChanged.RemoveListener(MinMaxSliderChanged);
+        XR_IndexSlider.OnValueUpdated.RemoveListener(XR_SliderChanged);
+        XR_SelectVolumePathButton.OnClicked.RemoveListener(XR_VolumePathClicked);
+        XR_SelectSourcesPathButton.OnClicked.RemoveListener(XR_SourcePathClicked);
+        volumeFile?.Dispose();
+    }
+
+    private void OnApplicationQuit()
+    {
+        volumeFile?.Dispose();
+        VolumeSliceImage?.material?.SetVector("_MinMaxVal", new Vector4(0, 1, 0, 0));
+        ToggleChanged(false);
+    }
+
+    void XR_SourcesOnlyToggleClicked()
+    {
+        ToggleChanged(XR_SourcesOnlyToggle.IsToggled);
+    }
+
+    void XR_VolumePathClicked()
+    {
+        FileBrowser.ShowLoadDialog(VolumePathLoadSuccess, null, FileBrowser.PickMode.Files);
+    }
+
+    void VolumePathLoadSuccess(string[] path)
+    {
+        VolumePathField.text = path[0];
+    }
+
+    void XR_SourcePathClicked()
+    {
+        FileBrowser.ShowLoadDialog(SourcesPathLoadSuccess, null, FileBrowser.PickMode.Files);
+    }
+
+    void SourcesPathLoadSuccess(string[] path)
+    {
+        SourcesPathField.text = path[0];
+    }
+
+    void XR_SliderChanged(SliderEventData eventData)
+    {
+        OnLoadVolumeSliceChanged(eventData.NewValue);
+    }
+
+    void MinMaxSliderChanged(float min, float max)
     {
         valueRange = new Vector2(min / 100f, max / 100f);
 
@@ -70,6 +138,7 @@ public class VolumeUIController : MonoBehaviour
     void ToggleChanged(bool value)
     {
         VolumeSliceImage.material.SetFloat("_FilterSourceRegions", value ? 1f : 0f);
+        OnLoadVolumeSliceChanged(XR_IndexSlider.Value);
     }
 
     void SetShaderDefaults()
@@ -103,6 +172,10 @@ public class VolumeUIController : MonoBehaviour
                 IndexSlider.maxValue = info.Dimensions.Max.z - 1;
                 IndexSlider.minValue = info.Dimensions.Min.z;
                 IndexSlider.SetValueWithoutNotify(info.MinValue);
+
+                XR_IndexSlider.MaxValue = info.Dimensions.Max.z - 1;
+                XR_IndexSlider.MinValue = info.Dimensions.Min.z;
+                XR_IndexSlider.Value = info.MinValue;
 
                 UpdateInfoText(info);
                 OnLoadVolumeSliceChanged(0);
@@ -163,22 +236,6 @@ public class VolumeUIController : MonoBehaviour
         SourceRegionsText.text = stringBuilder.ToString();
     }
 
-    private void OnDisable()
-    {
-        LoadVolumeInfoButton.onClick.RemoveListener(OnLoadVolumeClicked);
-        LoadSourcesInfoButton.onClick.RemoveListener(OnLoadSourcesClicked);
-        IndexSlider.onValueChanged.RemoveListener(OnLoadVolumeSliceChanged);
-        Toggle.onValueChanged.RemoveListener(ToggleChanged);
-        Slider.onValueChanged.RemoveListener(SliderChanged);
-        volumeFile?.Dispose();
-    }
-
-    private void OnApplicationQuit()
-    {
-        volumeFile?.Dispose();
-        VolumeSliceImage?.material?.SetVector("_MinMaxVal", new Vector4(0, 1, 0, 0));
-        ToggleChanged(false);
-    }
 
     unsafe void OnLoadVolumeSliceChanged(float v)
     {
@@ -243,7 +300,6 @@ public class VolumeUIController : MonoBehaviour
                     if (sourceRegions[i].SourceDimensions.Min.z <= z && sourceRegions[i].SourceDimensions.Max.z > z)
                     {
                         visibleRegions.Add(i);
-                        Debug.Log(i);
                     }
                 }
                 if (visibleSourceRegionsBuffer.count != visibleRegions.Count)

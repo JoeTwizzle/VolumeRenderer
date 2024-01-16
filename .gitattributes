@@ -139,3 +139,4 @@
 *.gz lfs-file
 *.rar lfs-file
 *.tar lfs-file
+*.tgz lfs-file
