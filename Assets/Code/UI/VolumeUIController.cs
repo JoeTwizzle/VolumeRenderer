@@ -42,7 +42,9 @@ public class VolumeUIController : MonoBehaviour
 
     public int SelectedAxis;
 
-    public MinMaxSlider Slider;
+    public MinMaxSlider RangeSlider;
+
+    public MinMaxCoupler XR_RangeSlider;
 
     SourceRegion[]? sourceRegions;
     ComputeBuffer sourceRegionsBuffer;
@@ -65,8 +67,9 @@ public class VolumeUIController : MonoBehaviour
         LoadSourcesInfoButton.onClick.AddListener(OnLoadSourcesClicked);
         IndexSlider.onValueChanged.AddListener(OnLoadVolumeSliceChanged);
         SourcesOnlyToggle?.onValueChanged.AddListener(ToggleChanged);
-        Slider.onValueChanged.AddListener(MinMaxSliderChanged);
-        XR_IndexSlider.OnValueUpdated.AddListener(XR_SliderChanged);
+        RangeSlider?.onValueChanged.AddListener(RangeSliderChanged);
+        XR_IndexSlider.OnValueUpdated.AddListener(XR_IndexSliderChanged);
+        XR_RangeSlider.OnValueChanged.AddListener(RangeSliderChanged);
         XR_SelectVolumePathButton.OnClicked.AddListener(XR_VolumePathClicked);
         XR_SelectSourcesPathButton.OnClicked.AddListener(XR_SourcePathClicked);
         SelectedAxis = 2;
@@ -83,8 +86,9 @@ public class VolumeUIController : MonoBehaviour
         XR_LoadSourcesButton.OnClicked.RemoveListener(OnLoadSourcesClicked);
         IndexSlider.onValueChanged.RemoveListener(OnLoadVolumeSliceChanged);
         SourcesOnlyToggle?.onValueChanged.RemoveListener(ToggleChanged);
-        Slider.onValueChanged.RemoveListener(MinMaxSliderChanged);
-        XR_IndexSlider.OnValueUpdated.RemoveListener(XR_SliderChanged);
+        RangeSlider?.onValueChanged.RemoveListener(RangeSliderChanged);
+        XR_IndexSlider.OnValueUpdated.RemoveListener(XR_IndexSliderChanged);
+        XR_RangeSlider.OnValueChanged.RemoveListener(RangeSliderChanged);
         XR_SelectVolumePathButton.OnClicked.RemoveListener(XR_VolumePathClicked);
         XR_SelectSourcesPathButton.OnClicked.RemoveListener(XR_SourcePathClicked);
         volumeFile?.Dispose();
@@ -122,14 +126,19 @@ public class VolumeUIController : MonoBehaviour
         SourcesPathField.text = path[0];
     }
 
-    void XR_SliderChanged(SliderEventData eventData)
+    void XR_IndexSliderChanged(SliderEventData eventData)
     {
         OnLoadVolumeSliceChanged(eventData.NewValue);
     }
 
-    void MinMaxSliderChanged(float min, float max)
+    void RangeSliderChanged(float min, float max)
     {
-        valueRange = new Vector2(min / 100f, max / 100f);
+        if (!globalVolumeInfo.HasValue)
+        {
+            Debug.Log("No volume loaded");
+            return;
+        }
+        valueRange = new Vector2(min , max );
 
         var info = globalVolumeInfo.Value;
         VolumeSliceImage.material.SetVector("_MinMaxVal", new Vector4(info.MinValue, info.MaxValue, valueRange.x, valueRange.y));
@@ -169,13 +178,18 @@ public class VolumeUIController : MonoBehaviour
                 }
 
                 globalVolumeInfo = info;
-                IndexSlider.maxValue = info.Dimensions.Max.z - 1;
-                IndexSlider.minValue = info.Dimensions.Min.z;
-                IndexSlider.SetValueWithoutNotify(info.MinValue);
+                //IndexSlider.maxValue = info.Dimensions.Max.z - 1;
+                //IndexSlider.minValue = info.Dimensions.Min.z;
+                //IndexSlider.SetValueWithoutNotify(info.Dimensions.Min.z);
 
                 XR_IndexSlider.MaxValue = info.Dimensions.Max.z - 1;
                 XR_IndexSlider.MinValue = info.Dimensions.Min.z;
-                XR_IndexSlider.Value = info.MinValue;
+                XR_IndexSlider.Value = info.Dimensions.Min.z;
+
+                XR_RangeSlider.MinSlider.MinValue = info.MinValue;
+                XR_RangeSlider.MinSlider.Value = info.MinValue;
+                XR_RangeSlider.MaxSlider.MaxValue = info.MaxValue;
+                XR_RangeSlider.MaxSlider.Value = info.MaxValue;
 
                 UpdateInfoText(info);
                 OnLoadVolumeSliceChanged(0);
