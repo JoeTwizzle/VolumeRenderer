@@ -14,9 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   isCustomProfile: 0
   loadedSubsystems:
+  - reference: MixedReality.Toolkit.Input.MRTKHandsAggregatorSubsystem, MixedReality.Toolkit.Input
+  - reference: MixedReality.Toolkit.Input.OpenXRHandsSubsystem, MixedReality.Toolkit.Input
   - reference: MixedReality.Toolkit.Input.SyntheticHandsSubsystem, MixedReality.Toolkit.Input
   subsystemConfigs:
     entries:
+    - key:
+        reference: MixedReality.Toolkit.Input.MRTKHandsAggregatorSubsystem, MixedReality.Toolkit.Input
+      value: {fileID: 11400000, guid: b8da41358d218754494ea49599e7b0fb, type: 2}
     - key:
         reference: MixedReality.Toolkit.Input.SyntheticHandsSubsystem, MixedReality.Toolkit.Input
       value: {fileID: 11400000, guid: c45788af2ca823a4a904bf8762ff126d, type: 2}

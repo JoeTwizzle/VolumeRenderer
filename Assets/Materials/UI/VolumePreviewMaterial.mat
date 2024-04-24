@@ -93,7 +93,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints:
-    - _VisibleRegionsCount: 3
+    - _VisibleRegionsCount: 6
     m_Floats:
     - _AlphaClip: 0
     - _AlphaToMask: 0

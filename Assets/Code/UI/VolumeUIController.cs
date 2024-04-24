@@ -13,6 +13,7 @@ using System.Text;
 using UnityEngine.UI.Extensions;
 using MixedReality.Toolkit.UX;
 using SimpleFileBrowser;
+using UnityEngine.XR;
 
 public class VolumeUIController : MonoBehaviour
 {
@@ -59,6 +60,7 @@ public class VolumeUIController : MonoBehaviour
 
     private void OnEnable()
     {
+        XRSettings.enabled = true;
         visibleRegions = new List<int>();
         XR_SourcesOnlyToggle.OnClicked.AddListener(XR_SourcesOnlyToggleClicked);
         XR_LoadVolumeButton.OnClicked.AddListener(OnLoadVolumeClicked);

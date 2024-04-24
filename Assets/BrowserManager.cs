@@ -11,11 +11,13 @@ public class BrowserManager : MonoBehaviour
     void Start()
     {
         
+        Browser = GetComponent<WebBrowserUIBasic>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        Browser.browserClient.UpdateFps();
+        Debug.Log(Browser.browserClient.FPS.ToString());
     }
 }
