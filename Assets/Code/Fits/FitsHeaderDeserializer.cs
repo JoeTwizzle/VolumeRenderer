@@ -165,7 +165,7 @@ namespace Assets.Code.Fits
 
             if (value[0] == '\'')
             {
-                return new String(value[1..^1]);
+                return new string(value[1..^1]);
             }
 
             if (value.IndexOf('.') != -1)

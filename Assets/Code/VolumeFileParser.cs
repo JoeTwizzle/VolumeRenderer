@@ -112,6 +112,14 @@ namespace Assets.Code
             return (voxels, sourceBoxes);
         }
 
+        public static Header ReadHeader(string fitsFilePath)
+        {
+            var headerDeserializer = new FitsHeaderDeserializer();
+            using var srcFile = MemoryMappedFile.CreateFromFile(fitsFilePath, FileMode.Open);
+            (bool endOfStreamReached, Header header, ulong dataStart) = headerDeserializer.Deserialize(srcFile);
+            return header;
+        }
+
         public static unsafe (MemoryMappedFile data, GlobalVolumeInfo info) LoadSourceVolume(string fitsFilePath)
         {
             string cacheFileName = fitsFilePath + ".raw.cache";
